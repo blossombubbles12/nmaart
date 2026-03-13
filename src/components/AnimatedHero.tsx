@@ -79,7 +79,7 @@ export function AnimatedHero() {
           style={{ opacity }}
           className="flex flex-col items-center"
         >
-          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter mb-6 leading-[0.85] text-center uppercase text-primary">
+          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter mb-6 leading-[0.85] text-center uppercase text-primary dark:text-white drop-shadow-2xl">
             DIVINE <br />
             <span className="gradient-text pb-2 inline-block">DIMENSIONS</span>
           </h1>
