@@ -14,18 +14,18 @@ interface WebXRARProps {
 }
 
 type ARSupport = "webxr" | "quicklook" | "none" | "checking";
-type ARPhase = "idle" | "launching" | "scanning" | "ready" | "placed" | "error";
+type ARPhase = "idle" | "launching" | "scanning" | "ready" | "placed" | "virtual" | "error";
 
 function detectARSupport(): Promise<ARSupport> {
   return new Promise((resolve) => {
     // iOS AR Quick Look detection
     const anchor = document.createElement("a");
-    if (anchor.relList.supports("ar")) {
+    if (anchor.relList && anchor.relList.supports && anchor.relList.supports("ar")) {
       resolve("quicklook");
       return;
     }
     // WebXR detection (Android Chrome, Edge)
-    if ("xr" in navigator) {
+    if (typeof navigator !== "undefined" && "xr" in navigator) {
       (navigator as any).xr
         .isSessionSupported("immersive-ar")
         .then((supported: boolean) => resolve(supported ? "webxr" : "none"))
@@ -225,6 +225,78 @@ export function WebXRAR({ imageUrl, title, price, onClose }: WebXRARProps) {
     }
   }, [imageUrl, cleanupAR, onClose]);
 
+  const launchVirtualPreview = useCallback(async () => {
+    if (!canvasRef.current) return;
+    setPhase("launching");
+    setStatusMsg("Optimizing 3D preview...");
+
+    try {
+      const renderer = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+        antialias: true,
+        alpha: true,
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      rendererRef.current = renderer;
+
+      const scene = new THREE.Scene();
+      sceneRef.current = scene;
+
+      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+      camera.position.set(0, 0, 2);
+      cameraRef.current = camera;
+
+      // Add a "Virtual Room" background or floor
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+      scene.add(ambientLight);
+      
+      const pointLight = new THREE.PointLight(0xffffff, 2);
+      pointLight.position.set(2, 2, 2);
+      scene.add(pointLight);
+
+      // Load artwork texture
+      const texture = await new Promise<THREE.Texture>((resolve, reject) => {
+        new THREE.TextureLoader().load(imageUrl, resolve, undefined, reject);
+      });
+      texture.colorSpace = THREE.SRGBColorSpace;
+
+      const img = texture.image as HTMLImageElement;
+      const aspectRatio = img.naturalWidth / img.naturalHeight || 4/5;
+      const panelWidth = 1;
+      const panelHeight = panelWidth / aspectRatio;
+
+      const geo = new THREE.PlaneGeometry(panelWidth, panelHeight);
+      const mat = new THREE.MeshStandardMaterial({ 
+        map: texture, 
+        side: THREE.DoubleSide,
+        roughness: 0.3,
+        metalness: 0.1
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      scene.add(mesh);
+      artworkRef.current = mesh;
+
+      setPhase("virtual");
+      setStatusMsg("Virtual Preview Active");
+
+      const animate = () => {
+        if (phase === "error") return;
+        rafRef.current = requestAnimationFrame(animate);
+        if (mesh) {
+           mesh.rotation.y = Math.sin(Date.now() * 0.001) * 0.2;
+        }
+        renderer.render(scene, camera);
+      };
+      animate();
+
+    } catch (err: any) {
+      setPhase("error");
+      setStatusMsg("Failed to load 3D preview.");
+    }
+  }, [imageUrl, phase]);
+
   const resetPlacement = () => {
     if (artworkRef.current && sceneRef.current) {
       sceneRef.current.remove(artworkRef.current);
@@ -379,72 +451,67 @@ export function WebXRAR({ imageUrl, title, price, onClose }: WebXRARProps) {
     );
   }
 
-  // ─── iOS AR Quick Look ───
-  if (arSupport === "quicklook") {
+  // ─── iOS AR Quick Look & Unsupported Fallback (Interactive 3D Preview) ───
+  if (arSupport === "quicklook" || arSupport === "none") {
+    if (phase === "launching" || phase === "virtual") {
+        return (
+          <div className="fixed inset-0 z-[300] bg-black">
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+            <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-5 pt-14 z-10">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white drop-shadow-lg">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    Interactive 3D Preview
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setPhase("idle"); cleanupAR(); onClose(); }}
+                  className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+            </div>
+            
+            <div className="absolute bottom-12 left-0 right-0 px-8 text-center pointer-events-none">
+                <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Drag to rotate • View in your space</p>
+                <button className="pointer-events-auto w-full py-5 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em]">
+                    Acquire Artwork
+                </button>
+            </div>
+          </div>
+        )
+    }
+
     return (
       <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center px-6 gap-6">
         <button onClick={onClose} className="absolute top-14 right-5 w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
           <X className="w-5 h-5" />
         </button>
 
-        <div className="relative w-40 h-48 rounded-2xl overflow-hidden border-4 border-white/20">
+        <div className="relative w-40 h-48 rounded-2xl overflow-hidden border-4 border-white/20 shadow-2xl">
           <Image src={imageUrl} alt={title} fill className="object-cover" />
         </div>
 
         <div className="text-center">
           <h2 className="text-xl font-black text-primary uppercase tracking-tight mb-2">{title}</h2>
-          <p className="text-white/60 font-bold text-xs uppercase tracking-widest">iOS AR Quick Look</p>
+          <p className="text-white/60 font-bold text-xs uppercase tracking-widest">Enhanced Preview</p>
         </div>
 
-        <p className="text-white/50 text-xs text-center font-bold max-w-xs leading-relaxed">
-          Tap below to open this artwork in Apple AR Quick Look. It will appear floating in your real space via your camera.
+        <p className="text-white/50 text-[10px] text-center font-black uppercase tracking-widest max-w-xs leading-relaxed">
+          Spatial AR requires a 3D model (.usdz). Experience our high-fidelity virtual display room instead.
         </p>
 
-        {/* AR Quick Look anchor — the native iOS way */}
-        <a
-          href={imageUrl}
-          rel="ar"
-          download={`${title}.usdz`}
+        <button
+          onClick={launchVirtualPreview}
           className="w-full max-w-sm py-5 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-2xl shadow-primary/40 text-center"
         >
-          Open in AR Quick Look
-        </a>
+          Enter 3D Preview
+        </button>
 
-        <p className="text-white/30 text-[10px] text-center font-bold max-w-xs">
-          Requires iOS 13+ with Safari. For best results, a .usdz version of this artwork is recommended.
+        <p className="text-white/30 text-[9px] text-center font-bold max-w-xs uppercase tracking-widest">
+          Tip: Open on Android Chrome for full spatial AR.
         </p>
       </div>
     );
   }
-
-  // ─── Unsupported device — show QR + simulation guide ───
-  return (
-    <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center px-6 gap-6">
-      <button onClick={onClose} className="absolute top-14 right-5 w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
-        <X className="w-5 h-5" />
-      </button>
-
-      <QrCode className="w-16 h-16 text-primary/40" />
-
-      <div className="text-center">
-        <h2 className="text-2xl font-black text-primary uppercase tracking-tight mb-2">AR Not Available</h2>
-        <p className="text-white/50 font-bold text-sm uppercase tracking-widest">On This Device</p>
-      </div>
-
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 w-full max-w-sm text-center space-y-2">
-        <p className="text-white/80 font-bold text-sm">To experience AR, open this page on:</p>
-        <p className="text-primary font-black text-sm">Android — Chrome or Edge</p>
-        <p className="text-white/40 font-bold text-xs">or</p>
-        <p className="text-primary font-black text-sm">iPhone/iPad — Safari 13+</p>
-      </div>
-
-      <p className="text-white/30 text-xs text-center max-w-xs font-bold">
-        WebAR uses your device camera and ARCore/ARKit to place the artwork directly on your wall in real time.
-      </p>
-
-      <button onClick={onClose} className="px-8 py-4 border border-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-widest">
-        Close
-      </button>
-    </div>
-  );
 }
