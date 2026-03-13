@@ -70,8 +70,19 @@ export function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[90] bg-background/98 backdrop-blur-3xl lg:hidden flex flex-col items-start justify-center p-12"
+            className="fixed inset-0 z-[200] bg-background backdrop-blur-3xl lg:hidden flex flex-col p-6 pt-0"
           >
+            {/* Top bar inside mobile menu (covers the navbar) */}
+            <div className="flex items-center justify-between py-5 border-b border-primary/10 mb-8">
+              <span className="text-2xl font-black tracking-tighter gradient-text">NMA ART</span>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-full hover:bg-primary/10 transition-colors text-foreground"
+                aria-label="Close menu"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
             <div className="flex flex-col items-start gap-10 w-full max-w-sm">
               <div className="flex flex-col items-start gap-6 lg:hidden">
                  <div className="p-3 glass rounded-full ring-2 ring-primary/20 mb-4 scale-110">
