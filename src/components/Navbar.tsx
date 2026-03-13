@@ -42,7 +42,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4 lg:gap-6">
-            <div className="hidden sm:flex items-center h-full">
+            <div className="flex items-center h-full">
                <ThemeToggle />
             </div>
             
@@ -75,19 +75,20 @@ export function Navbar() {
             {/* Top bar inside mobile menu (covers the navbar) */}
             <div className="flex items-center justify-between py-5 border-b border-primary/10 mb-8">
               <span className="text-2xl font-black tracking-tighter gradient-text">NMA ART</span>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 rounded-full hover:bg-primary/10 transition-colors text-foreground"
-                aria-label="Close menu"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-full hover:bg-primary/10 transition-colors text-foreground"
+                  aria-label="Close menu"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
             <div className="flex flex-col items-start gap-10 w-full max-w-sm">
               <div className="flex flex-col items-start gap-6 lg:hidden">
-                 <div className="p-3 glass rounded-full ring-2 ring-primary/20 mb-4 scale-110">
-                    <ThemeToggle />
-                 </div>
+
                  <button className="px-10 py-4 bg-primary text-white rounded-full text-[10px] font-black tracking-[0.3em] uppercase shadow-2xl shadow-primary/40">
                     EXPLORE COLLECTION
                  </button>
