@@ -4,25 +4,15 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ARTWORKS } from "@/lib/artworks";
-import {
-  ArrowLeft,
-  Camera,
-  Maximize2,
-  RotateCw,
-  Move,
-  X,
-  ShoppingBag,
-  Heart,
-  Share2,
-} from "lucide-react";
+import { ArrowLeft, Camera, ShoppingBag, Heart, Share2 } from "lucide-react";
+import { WebXRAR } from "@/components/ar/WebXRAR";
 
 export default function ArtworkPage() {
   const { id } = useParams();
   const artwork = ARTWORKS.find((a) => a.id === id);
   const [arMode, setArMode] = useState(false);
-  const [arStep, setArStep] = useState<"scanning" | "placing" | "placed">("scanning");
   const [wishlist, setWishlist] = useState(false);
 
   if (!artwork) {
@@ -38,17 +28,20 @@ export default function ArtworkPage() {
     );
   }
 
-  const startAR = () => {
-    setArMode(true);
-    setArStep("scanning");
-    setTimeout(() => setArStep("placing"), 2000);
-    setTimeout(() => setArStep("placed"), 4000);
-  };
 
   const relatedWorks = ARTWORKS.filter((a) => a.id !== artwork.id);
 
   return (
     <div className="min-h-screen pb-24">
+      {/* Real WebXR AR overlay — mounts when active */}
+      {arMode && (
+        <WebXRAR
+          imageUrl={artwork.image}
+          title={artwork.title}
+          price={artwork.price}
+          onClose={() => setArMode(false)}
+        />
+      )}
       {/* Back Nav */}
       <div className="container px-4 md:px-6 mx-auto pt-6 mb-6">
         <Link
@@ -81,7 +74,7 @@ export default function ArtworkPage() {
 
           {/* AR badge on image */}
           <button
-            onClick={startAR}
+            onClick={() => setArMode(true)}
             className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-full text-[10px] font-black tracking-widest uppercase shadow-xl shadow-primary/40 hover:scale-105 transition-transform"
           >
             <Camera className="w-3.5 h-3.5" />
@@ -165,7 +158,7 @@ export default function ArtworkPage() {
                 Acquire
               </button>
               <button
-                onClick={startAR}
+                onClick={() => setArMode(true)}
                 className="flex items-center justify-center gap-2 px-4 py-4 border-2 border-primary text-primary rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary hover:text-white transition-all"
               >
                 <Camera className="w-4 h-4" />
@@ -222,173 +215,6 @@ export default function ArtworkPage() {
         </div>
       </div>
 
-      {/* ===== AR EXPERIENCE OVERLAY ===== */}
-      <AnimatePresence>
-        {arMode && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black flex flex-col"
-          >
-            {/* Simulated Camera Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950">
-              <div
-                className="absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 41px),
-                                    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 41px)`,
-                }}
-              />
-              <div className="absolute bottom-[35%] left-0 right-0 h-px bg-white/10" />
-              <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute top-0 left-0 right-0 h-[15%] bg-gradient-to-b from-black/40 to-transparent" />
-            </div>
-
-            {/* Top HUD */}
-            <div className="relative z-10 flex items-start justify-between px-5 pt-14 pb-3">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
-                  Camera Active
-                </div>
-                {arStep !== "scanning" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    Surface Mapped
-                  </motion.div>
-                )}
-                {arStep === "placed" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/60"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-white/40" />
-                    SLAM Tracking: On · 8ms
-                  </motion.div>
-                )}
-              </div>
-              <button
-                onClick={() => { setArMode(false); setArStep("scanning"); }}
-                className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* AR Scene */}
-            <div className="relative flex-1 flex items-center justify-center px-4">
-              {arStep === "scanning" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center gap-4"
-                >
-                  <div className="w-20 h-20 rounded-full border-4 border-primary/40 border-t-primary animate-spin" />
-                  <p className="text-white font-bold text-sm uppercase tracking-widest">
-                    Scanning surfaces...
-                  </p>
-                </motion.div>
-              )}
-
-              {arStep === "placing" && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center gap-4"
-                >
-                  <div className="w-56 h-44 border-2 border-dashed border-primary/60 rounded-lg flex items-center justify-center animate-pulse">
-                    <p className="text-primary/80 text-xs font-black uppercase tracking-widest text-center px-4">
-                      Move your device to<br />place the artwork
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-
-              {arStep === "placed" && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.7, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className="relative"
-                >
-                  <div className="absolute inset-0 translate-y-4 blur-2xl bg-black/50 scale-110 rounded-sm" />
-                  <div className="relative w-52 md:w-72 aspect-[4/5] rounded-sm overflow-hidden border-[10px] border-[#d4c4a0] shadow-[0_30px_80px_rgba(0,0,0,0.9)]">
-                    <Image src={artwork.image} alt={artwork.title} fill className="object-cover" />
-                    <div className="absolute inset-0 border border-primary/30 rounded-sm pointer-events-none">
-                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary" />
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary" />
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary" />
-                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary" />
-                      <div className="absolute -top-7 left-0 right-0 flex justify-center">
-                        <div className="bg-primary/90 backdrop-blur-md text-white text-[8px] font-black tracking-widest uppercase px-3 py-1 rounded-full whitespace-nowrap">
-                          {artwork.title} · {artwork.dimensions}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 mx-auto w-40 h-3 bg-black/40 blur-md rounded-full" />
-                </motion.div>
-              )}
-            </div>
-
-            {/* Bottom Controls */}
-            {arStep === "placed" && (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 px-5 pb-10 flex flex-col gap-4"
-              >
-                <div className="flex justify-center gap-6">
-                  {[
-                    { icon: <Move className="w-5 h-5" />, label: "Move" },
-                    { icon: <RotateCw className="w-5 h-5" />, label: "Rotate" },
-                    { icon: <Maximize2 className="w-5 h-5" />, label: "Scale" },
-                  ].map((ctrl) => (
-                    <button key={ctrl.label} className="flex flex-col items-center gap-1.5">
-                      <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-primary hover:border-primary transition-all">
-                        {ctrl.icon}
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
-                        {ctrl.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-3 mt-1">
-                  <button className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-2xl shadow-primary/40">
-                    <ShoppingBag className="w-4 h-4" />
-                    Acquire — {artwork.price}
-                  </button>
-                  <button
-                    onClick={() => setArStep("scanning")}
-                    className="px-5 py-4 border border-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-wider backdrop-blur-md bg-white/5"
-                  >
-                    Retry
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Step Dots */}
-            <div className="relative z-10 flex justify-center gap-2 pb-5">
-              {(["scanning", "placing", "placed"] as const).map((step) => (
-                <div
-                  key={step}
-                  className={`h-1 rounded-full transition-all duration-500 ${
-                    arStep === step ? "w-8 bg-primary" : "w-2 bg-white/20"
-                  }`}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
