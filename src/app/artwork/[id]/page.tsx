@@ -8,12 +8,14 @@ import { motion } from "framer-motion";
 import { ARTWORKS } from "@/lib/artworks";
 import { ArrowLeft, Camera, ShoppingBag, Heart, Share2 } from "lucide-react";
 import { WebXRAR } from "@/components/ar/WebXRAR";
+import { useCart } from "@/lib/CartContext";
 
 export default function ArtworkPage() {
   const { id } = useParams();
   const artwork = ARTWORKS.find((a) => a.id === id);
   const [arMode, setArMode] = useState(false);
   const [wishlist, setWishlist] = useState(false);
+  const { addToCart } = useCart();
 
   if (!artwork) {
     return (
@@ -153,7 +155,10 @@ export default function ArtworkPage() {
           {/* Action Buttons */}
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center gap-2 px-4 py-4 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-xl shadow-primary/30">
+              <button 
+                onClick={() => addToCart(artwork)}
+                className="flex items-center justify-center gap-2 px-4 py-4 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-xl shadow-primary/30"
+              >
                 <ShoppingBag className="w-4 h-4" />
                 Acquire
               </button>

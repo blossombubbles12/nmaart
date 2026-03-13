@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Experience the future of digital art with our immersive 3D and AR gallery.",
 };
 
+import { CartProvider } from "@/lib/CartContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,14 +35,16 @@ export default function RootLayout({
           defaultTheme="light"
           enableSystem
         >
-          <AnimatedCursor />
-          <Navbar />
-          <PageTransitionWrapper>
-            <main className="min-h-screen pt-20">
-              {children}
-            </main>
-          </PageTransitionWrapper>
-          <Footer />
+          <CartProvider>
+            <AnimatedCursor />
+            <Navbar />
+            <PageTransitionWrapper>
+              <main className="min-h-screen pt-20">
+                {children}
+              </main>
+            </PageTransitionWrapper>
+            <Footer />
+          </CartProvider>
         </ThemeProvider>
       </body>
     </html>
