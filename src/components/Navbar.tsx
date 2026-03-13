@@ -94,7 +94,7 @@ export function Navbar() {
                     <Link 
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className="text-6xl md:text-7xl font-black tracking-tighter hover:text-primary transition-colors block py-3 uppercase leading-none"
+                      className="text-2xl font-bold hover:text-primary transition-colors block py-3"
                     >
                       {link.name}
                     </Link>
